@@ -1,0 +1,6 @@
+---
+auth_token: "..."
+mappings:
+- image: library/someapp
+  deployment: someapp
+  namespace: default
