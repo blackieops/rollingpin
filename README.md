@@ -4,6 +4,10 @@
 container regsitry and updates corresponding Kubernetes deployments to
 facilitate minimal continuous delivery without complex CI/CD pipelines.
 
+Currently, the only supported webhook source is from a [Harbor Registry][0].
+
+[0]: https://goharbor.io
+
 ## Usage
 
 `rollingpin` is first and foremost a Kubernetes service, so the only supported
