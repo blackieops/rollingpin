@@ -31,7 +31,6 @@ type HarborWebhookEvent struct {
 }
 
 var configPath = flag.String("config", "config.yaml", "Path to the config file.")
-var logger *zap.Logger
 
 func main() {
 	logger, err := zap.NewProduction()
@@ -54,7 +53,7 @@ func main() {
 
 	r := gin.New()
 	r.SetTrustedProxies(nil)
-	r.Use(gin.Recovery(), requestLogger())
+	r.Use(gin.Recovery(), requestLogger(logger))
 
 	r.POST("/webhooks/harbor", auth(conf), func(c *gin.Context) {
 		var webhook *HarborWebhook
@@ -66,7 +65,7 @@ func main() {
 		}
 		if webhook.EventType == "pushImage" {
 			for _, e := range webhook.Events {
-				go handlePushImage(conf, kube, &e)
+				go handlePushImage(conf, logger, kube, &e)
 			}
 		}
 		c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -76,7 +75,7 @@ func main() {
 	r.Run(":8080")
 }
 
-func requestLogger() gin.HandlerFunc {
+func requestLogger(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestStart := time.Now()
 		c.Next()
@@ -90,7 +89,7 @@ func requestLogger() gin.HandlerFunc {
 	}
 }
 
-func handlePushImage(c *config.Config, api *kubernetes.Clientset, w *HarborWebhookEvent) error {
+func handlePushImage(c *config.Config, logger *zap.Logger, api *kubernetes.Clientset, w *HarborWebhookEvent) error {
 	for _, m := range c.Mappings {
 		if w.FullName == m.ImageName {
 			logger.Info("Webhook matched configured deployment",
