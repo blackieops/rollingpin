@@ -56,7 +56,7 @@ func main() {
 	r.SetTrustedProxies(nil)
 	r.Use(gin.Recovery(), requestLogger())
 
-	r.POST("/webhooks/harbor", func(c *gin.Context) {
+	r.POST("/webhooks/harbor", auth(conf), func(c *gin.Context) {
 		var webhook *HarborWebhook
 		err := c.BindJSON(webhook)
 		if err != nil {
@@ -107,4 +107,19 @@ func handlePushImage(c *config.Config, api *kubernetes.Clientset, w *HarborWebho
 		}
 	}
 	return nil
+}
+
+func auth(conf *config.Config) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		headerValue := c.Request.Header.Get("Authorization")
+		if headerValue == "" {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		token := headerValue[len("Bearer "):]
+		if token != conf.AuthToken {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+	}
 }
