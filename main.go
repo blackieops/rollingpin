@@ -61,23 +61,7 @@ func main() {
 		panic(err.Error())
 	}
 
-	r := gin.New()
-	r.SetTrustedProxies(nil)
-	r.Use(gin.Recovery(), requestLogger(logger))
-
-	r.POST("/webhooks/harbor", auth(conf), func(c *gin.Context) {
-		var webhook *HarborWebhook
-		err := c.BindJSON(webhook)
-		if err != nil {
-			logger.Info("JSON unmarshal failure", zap.Error(err))
-			c.AbortWithStatusJSON(http.StatusUnprocessableEntity, gin.H{"ok": false})
-			return
-		}
-		if webhook.EventType == "PUSH_ARTIFACT" {
-			handlePushArtifact(conf, logger, kube, &webhook.EventData)
-		}
-		c.JSON(http.StatusOK, gin.H{"ok": true})
-	})
+	r := buildRouter(conf, logger, kube)
 
 	logger.Info("Server started on :8080.")
 	r.Run(":8080")
@@ -129,4 +113,25 @@ func auth(conf *config.Config) gin.HandlerFunc {
 			return
 		}
 	}
+}
+
+func buildRouter(conf *config.Config, logger *zap.Logger, kube kubernetes.Interface) *gin.Engine {
+	r := gin.New()
+	r.SetTrustedProxies(nil)
+	r.Use(gin.Recovery(), requestLogger(logger), auth(conf))
+
+	r.POST("/webhooks/harbor", func(c *gin.Context) {
+		var webhook HarborWebhook
+		err := c.BindJSON(&webhook)
+		if err != nil {
+			logger.Info("JSON unmarshal failure", zap.Error(err))
+			c.AbortWithStatusJSON(http.StatusUnprocessableEntity, gin.H{"ok": false})
+			return
+		}
+		if webhook.EventType == "PUSH_ARTIFACT" {
+			handlePushArtifact(conf, logger, kube, &webhook.EventData)
+		}
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+	return r
 }

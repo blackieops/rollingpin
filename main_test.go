@@ -71,24 +71,38 @@ func TestAuthMismatch(t *testing.T) {
 }
 
 func TestHarborWebhookPushArtifact(t *testing.T) {
-	conf := &config.Config{}
-	event := &HarborWebhookEvent{
-		Resources: []HarborWebhookResource{
-			{Digest: "abc123", Tag: "latest", ResourceURL: "cr.b8s.dev/library/debian:latest"},
-		},
-		Repository: HarborWebhookRepository{
-			DateCreated: 1646959048,
-			Name: "debian",
-			Namespace: "library",
-			FullName: "library/debian",
-			Type: "public",
-		},
-	}
+	conf := &config.Config{AuthToken: "abc1234"}
 	api := fake.NewSimpleClientset()
 	log, _ := zap.NewProduction()
-	err := handlePushArtifact(conf, log, api, event)
-	if err != nil {
-		t.Errorf("Error while processing Harbor webhook: %v", err)
+	payload := `{
+		"type": "PUSH_ARTIFACT",
+		"occur_at": 1586922308,
+		"operator": "admin",
+		"event_data": {
+			"resources": [{
+				"digest": "sha256:8a9e9863dbb6e10edb5adfe917c00da84e1700fa76e7ed02476aa6e6fb8ee0d8",
+				"tag": "latest",
+				"resource_url": "hub.harbor.com/test-webhook/debian:latest"
+			}],
+			"repository": {
+				"date_created": 1586922308,
+				"name": "debian",
+				"namespace": "test-webhook",
+				"repo_full_name": "test-webhook/debian",
+				"repo_type": "private"
+			}
+		}
+	}`
+	req, _ := http.NewRequest("POST", "/webhooks/harbor", bytes.NewBufferString(payload))
+	req.Header.Add("authorization", "Bearer abc1234")
+	resp := httptest.NewRecorder()
+	r := buildRouter(conf, log, api)
+	r.ServeHTTP(resp, req)
+	if resp.Code != 200 {
+		t.Errorf("Expected 200 response got: %d", resp.Code)
+	}
+	if resp.Body.String() != `{"ok":true}` {
+		t.Errorf("Expected OK response got: %s", resp.Body.String())
 	}
 }
 
