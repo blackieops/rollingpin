@@ -38,15 +38,16 @@ The only permissions needed are to `get` and `update` deployments.
 ```yaml
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
-  namespace: default
   name: rollingpin-deploy
 rules:
 - apiGroups: ["apps/v1"]
   resources: ["deployments"]
   verbs: ["get", "update"]
 
+# Create a RoleBinding in every namespace that rollingpin needs to have access
+# to deployments.
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -58,7 +59,7 @@ subjects:
   name: rollingpin
   apiGroup: ""
 roleRef:
-  kind: Role
+  kind: ClusterRole
   name: rollingpin-deploy
   apiGroup: rbac.authorization.k8s.io
 ```
