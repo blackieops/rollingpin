@@ -18,12 +18,12 @@ type HarborWebhook struct {
 	EventType string             `json:"type"`
 	OccurAt   int                `json:"occur_at"`
 	Operator  string             `json:"operator"`
-	EventData HarborWebhookEvent `json:"events"`
+	EventData HarborWebhookEvent `json:"event_data"`
 }
 
 type HarborWebhookEvent struct {
 	Resources  []HarborWebhookResource `json:"resources"`
-	Repository HarborWebhookRepository `json:"respository"`
+	Repository HarborWebhookRepository `json:"repository"`
 }
 
 type HarborWebhookRepository struct {

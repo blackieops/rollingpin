@@ -33,7 +33,7 @@ func TestUnmarshalHarborWebhook(t *testing.T) {
 			}
 		}
 	}`
-	var webhook *HarborWebhook
+	var webhook HarborWebhook
 	err := json.Unmarshal([]byte(payload), &webhook)
 	if err != nil {
 		t.Errorf("Failed to unmarshal HarborWebhook: %v", err)
@@ -41,6 +41,15 @@ func TestUnmarshalHarborWebhook(t *testing.T) {
 	}
 	if webhook.EventType != "PUSH_ARTIFACT" {
 		t.Errorf("HarborWebhook unmarshalled incorrect type: %v", webhook.EventType)
+	}
+	if webhook.EventData.Repository.FullName != "test-webhook/debian" {
+		t.Errorf("HarborWebhookEvent.Repository had incorrect FullName: %v", webhook.EventData.Repository.FullName)
+	}
+	if webhook.EventData.Resources[0].ResourceURL != "hub.harbor.com/test-webhook/debian:latest" {
+		t.Errorf(
+			"HarborWebhookEvent.Resources[0] had incorrect ResourceURL: %v",
+			webhook.EventData.Resources[0].ResourceURL,
+		)
 	}
 }
 
