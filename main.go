@@ -1,14 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"context"
 	"flag"
 	"net/http"
 	"time"
 
-	"go.b8s.dev/rollingpin/config"
 	"github.com/gin-gonic/gin"
+	"go.b8s.dev/rollingpin/config"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -16,18 +15,29 @@ import (
 )
 
 type HarborWebhook struct {
-	EventType string               `json:"event_type"`
-	Events    []HarborWebhookEvent `json:"events"`
+	EventType string             `json:"type"`
+	OccurAt   int                `json:"occur_at"`
+	Operator  string             `json:"operator"`
+	EventData HarborWebhookEvent `json:"events"`
 }
 
 type HarborWebhookEvent struct {
-	Project     string `json:"project"`
-	RepoName    string `json:"repo_name"`
+	Resources  []HarborWebhookResource `json:"resources"`
+	Repository HarborWebhookRepository `json:"respository"`
+}
+
+type HarborWebhookRepository struct {
+	DateCreated int    `json:"date_created"`
+	Name        string `json:"name"`
+	Namespace   string `json:"namespace"`
+	FullName    string `json:"repo_full_name"`
+	Type        string `json:"repo_type"`
+}
+
+type HarborWebhookResource struct {
+	Digest      string `json:"digest"`
 	Tag         string `json:"tag"`
-	FullName    string `json:"full_name"`
-	TriggerTime int    `json:"trigger_time"`
-	ImageID     string `json:"image_id"`
-	ProjectType string `json:"project_type"`
+	ResourceURL string `json:"resource_url"`
 }
 
 var configPath = flag.String("config", "config.yaml", "Path to the config file.")
@@ -63,10 +73,8 @@ func main() {
 			c.AbortWithStatusJSON(http.StatusUnprocessableEntity, gin.H{"ok": false})
 			return
 		}
-		if webhook.EventType == "pushImage" {
-			for _, e := range webhook.Events {
-				go handlePushImage(conf, logger, kube, &e)
-			}
+		if webhook.EventType == "PUSH_ARTIFACT" {
+			handlePushArtifact(conf, logger, kube, &webhook.EventData)
 		}
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})
@@ -89,9 +97,9 @@ func requestLogger(logger *zap.Logger) gin.HandlerFunc {
 	}
 }
 
-func handlePushImage(c *config.Config, logger *zap.Logger, api *kubernetes.Clientset, w *HarborWebhookEvent) error {
+func handlePushArtifact(c *config.Config, logger *zap.Logger, api kubernetes.Interface, w *HarborWebhookEvent) error {
 	for _, m := range c.Mappings {
-		if w.FullName == m.ImageName {
+		if w.Repository.FullName == m.ImageName {
 			logger.Info("Webhook matched configured deployment",
 				zap.String("image_name", m.ImageName), zap.String("deployment", m.DeploymentName))
 			client := api.AppsV1().Deployments(m.Namespace)
@@ -99,8 +107,8 @@ func handlePushImage(c *config.Config, logger *zap.Logger, api *kubernetes.Clien
 			if err != nil {
 				return err
 			}
-			// TODO: support specifying which container to update
-			deployment.Spec.Template.Spec.Containers[0].Image = fmt.Sprintf("%s:%s", w.FullName, w.Tag)
+			// TODO: support specifying which container to update; support multiple resources(?)
+			deployment.Spec.Template.Spec.Containers[0].Image = w.Resources[0].ResourceURL
 			_, err = client.Update(context.TODO(), deployment, metav1.UpdateOptions{})
 			return err
 		}
