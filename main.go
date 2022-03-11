@@ -130,7 +130,9 @@ func buildRouter(conf *config.Config, logger *zap.Logger, kube kubernetes.Interf
 			return
 		}
 		if webhook.EventType == "PUSH_ARTIFACT" {
-			handlePushArtifact(conf, logger, kube, &webhook.EventData)
+			err := handlePushArtifact(conf, logger, kube, &webhook.EventData)
+			logger.Info("Error while updating deployment", zap.Error(err))
+			c.AbortWithStatusJSON(http.StatusUnprocessableEntity, gin.H{"ok": false})
 		}
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})
