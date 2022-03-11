@@ -72,7 +72,18 @@ func TestAuthMismatch(t *testing.T) {
 
 func TestHarborWebhookPushArtifact(t *testing.T) {
 	conf := &config.Config{}
-	event := &HarborWebhookEvent{}
+	event := &HarborWebhookEvent{
+		Resources: []HarborWebhookResource{
+			{Digest: "abc123", Tag: "latest", ResourceURL: "cr.b8s.dev/library/debian:latest"},
+		},
+		Repository: HarborWebhookRepository{
+			DateCreated: 1646959048,
+			Name: "debian",
+			Namespace: "library",
+			FullName: "library/debian",
+			Type: "public",
+		},
+	}
 	api := fake.NewSimpleClientset()
 	log, _ := zap.NewProduction()
 	err := handlePushArtifact(conf, log, api, event)
