@@ -1,0 +1,6 @@
+---
+auth_token: "abc123"
+mappings:
+- image: watashi/app
+  deployment: abc
+  namespace: default
