@@ -82,10 +82,9 @@ func requestLogger(logger *zap.Logger) gin.HandlerFunc {
 }
 
 func handlePushArtifact(c *config.Config, logger *zap.Logger, api kubernetes.Interface, w *HarborWebhookEvent) error {
+	logger.Info("Received Harbor webhook", zap.String("image_name", w.Repository.FullName))
 	for _, m := range c.Mappings {
 		if w.Repository.FullName == m.ImageName {
-			logger.Info("Webhook matched configured deployment",
-				zap.String("image_name", m.ImageName), zap.String("deployment", m.DeploymentName))
 			client := api.AppsV1().Deployments(m.Namespace)
 			deployment, err := client.Get(context.TODO(), m.DeploymentName, metav1.GetOptions{})
 			if err != nil {
@@ -94,6 +93,8 @@ func handlePushArtifact(c *config.Config, logger *zap.Logger, api kubernetes.Int
 			// TODO: support specifying which container to update; support multiple resources(?)
 			deployment.Spec.Template.Spec.Containers[0].Image = w.Resources[0].ResourceURL
 			_, err = client.Update(context.TODO(), deployment, metav1.UpdateOptions{})
+			logger.Info("Updated deployment",
+				zap.String("image_name", m.ImageName), zap.String("deployment", m.DeploymentName))
 			return err
 		}
 	}
