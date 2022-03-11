@@ -73,5 +73,5 @@ match the Service Account you created for `rollingpin`.
 Containers can either by built yourself, or pulled from our registry:
 
 ```
-cr.b8s.dev/library/rollingpin:v1.0.0
+cr.b8s.dev/library/rollingpin:v1.1.0
 ```
