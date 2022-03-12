@@ -1,44 +1,15 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.b8s.dev/rollingpin/config"
+	"go.b8s.dev/rollingpin/kube"
 	"go.uber.org/zap"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
-
-type HarborWebhook struct {
-	EventType string             `json:"type"`
-	OccurAt   int                `json:"occur_at"`
-	Operator  string             `json:"operator"`
-	EventData HarborWebhookEvent `json:"event_data"`
-}
-
-type HarborWebhookEvent struct {
-	Resources  []HarborWebhookResource `json:"resources"`
-	Repository HarborWebhookRepository `json:"repository"`
-}
-
-type HarborWebhookRepository struct {
-	DateCreated int    `json:"date_created"`
-	Name        string `json:"name"`
-	Namespace   string `json:"namespace"`
-	FullName    string `json:"repo_full_name"`
-	Type        string `json:"repo_type"`
-}
-
-type HarborWebhookResource struct {
-	Digest      string `json:"digest"`
-	Tag         string `json:"tag"`
-	ResourceURL string `json:"resource_url"`
-}
 
 var configPath = flag.String("config", "config.yaml", "Path to the config file.")
 
@@ -51,14 +22,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	clusterConfig, err := rest.InClusterConfig()
+	kube, err := kube.New()
 	if err != nil {
-		panic(err.Error())
-	}
-	// creates the clientset
-	kube, err := kubernetes.NewForConfig(clusterConfig)
-	if err != nil {
-		panic(err.Error())
+		panic(err)
 	}
 
 	r := buildRouter(conf, logger, kube)
@@ -81,20 +47,14 @@ func requestLogger(logger *zap.Logger) gin.HandlerFunc {
 	}
 }
 
-func handlePushArtifact(c *config.Config, logger *zap.Logger, api kubernetes.Interface, w *HarborWebhookEvent) error {
+func handlePushArtifact(c *config.Config, logger *zap.Logger, api kube.IClient, w *HarborWebhookEvent) error {
 	logger.Info("Received Harbor webhook", zap.String("image_name", w.Repository.FullName))
 	for _, m := range c.Mappings {
 		if w.Repository.FullName == m.ImageName {
-			client := api.AppsV1().Deployments(m.Namespace)
-			deployment, err := client.Get(context.TODO(), m.DeploymentName, metav1.GetOptions{})
-			if err != nil {
-				return err
-			}
-			// TODO: support specifying which container to update; support multiple resources(?)
-			deployment.Spec.Template.Spec.Containers[0].Image = w.Resources[0].ResourceURL
-			_, err = client.Update(context.TODO(), deployment, metav1.UpdateOptions{})
+			err := api.UpdateDeploymentImage(m.Namespace, m.DeploymentName, w.Resources[0].ResourceURL)
 			logger.Info("Updated deployment",
-				zap.String("image_name", m.ImageName), zap.String("deployment", m.DeploymentName))
+				zap.String("image_name", m.ImageName),
+				zap.String("deployment", m.DeploymentName))
 			return err
 		}
 	}
@@ -116,7 +76,7 @@ func auth(conf *config.Config) gin.HandlerFunc {
 	}
 }
 
-func buildRouter(conf *config.Config, logger *zap.Logger, kube kubernetes.Interface) *gin.Engine {
+func buildRouter(conf *config.Config, logger *zap.Logger, client kube.IClient) *gin.Engine {
 	r := gin.New()
 	r.SetTrustedProxies(nil)
 	r.Use(gin.Recovery(), requestLogger(logger), auth(conf))
@@ -130,7 +90,7 @@ func buildRouter(conf *config.Config, logger *zap.Logger, kube kubernetes.Interf
 			return
 		}
 		if webhook.EventType == "PUSH_ARTIFACT" {
-			err := handlePushArtifact(conf, logger, kube, &webhook.EventData)
+			err := handlePushArtifact(conf, logger, client, &webhook.EventData)
 			if err != nil {
 				logger.Info("Error while updating deployment", zap.Error(err))
 				c.AbortWithStatusJSON(http.StatusUnprocessableEntity, gin.H{"ok": false})
