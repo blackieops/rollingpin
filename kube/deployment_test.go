@@ -1,13 +1,13 @@
 package kube
 
 import (
-	"testing"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	appsv1 "k8s.io/api/apps/v1"
+	"testing"
 )
 
-func TestDeploymentFromKubernetes(t *testing.T){
+func TestDeploymentFromKubernetes(t *testing.T) {
 	source := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{Name: "myapp", Namespace: "default"},
 		Spec: appsv1.DeploymentSpec{
@@ -48,7 +48,7 @@ func TestDeploymentFromKubernetes(t *testing.T){
 func TestDeploymentToKubernetes(t *testing.T) {
 	source := &Deployment{
 		Namespace: "default",
-		Name: "myapp",
+		Name:      "myapp",
 		Containers: []*Container{
 			{Name: "app", Image: "nginx:latest"},
 			{Name: "proxy", Image: "envoy:latest"},

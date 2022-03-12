@@ -17,9 +17,9 @@ type Config struct {
 // ImageMapping correlates a container image name to a Kubernetes deployment
 // and namespace, so we know what to update for a given image.
 type ImageMapping struct {
-	ImageName string `yaml:"image"`
+	ImageName      string `yaml:"image"`
 	DeploymentName string `yaml:"deployment"`
-	Namespace string `yaml:"namespace"`
+	Namespace      string `yaml:"namespace"`
 }
 
 func LoadConfig(configPath string) (*Config, error) {

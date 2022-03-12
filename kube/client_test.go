@@ -19,7 +19,7 @@ func TestClientUpdateDeploymentImage(t *testing.T) {
 	client, _ := NewFake()
 	client.CreateDeployment(
 		&Deployment{
-			Name: "myapp",
+			Name:      "myapp",
 			Namespace: "default",
 			Containers: []*Container{
 				{Name: "app", Image: "nginx:latest"},

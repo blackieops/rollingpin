@@ -67,8 +67,8 @@ func TestHarborWebhookPushArtifact(t *testing.T) {
 	fakeClient, _ := kube.NewFake()
 	fakeClient.CreateDeployment(
 		&kube.Deployment{
-			Namespace:"default",
-			Name: "test-deployment",
+			Namespace: "default",
+			Name:      "test-deployment",
 			Containers: []*kube.Container{
 				{Name: "app", Image: "cr.b8s.dev/library/debian:v1"},
 			},
