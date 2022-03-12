@@ -6,39 +6,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"go.b8s.dev/rollingpin/config"
 	"go.b8s.dev/rollingpin/kube"
 	"go.uber.org/zap"
 )
 
-func TestAuthSuccess(t *testing.T) {
-	conf := &config.Config{
-		AuthToken: "test1234",
-	}
-	req, _ := http.NewRequest("POST", "/", bytes.NewBufferString(""))
-	req.Header.Add("authorization", "Bearer test1234")
-	ctx, resp := buildTestConn(req)
-	auth(conf)(ctx)
-	if resp.Code != 200 {
-		t.Errorf("Request should have been 200 but was %d!", resp.Code)
-	}
-}
-
-func TestAuthMismatch(t *testing.T) {
-	conf := &config.Config{
-		AuthToken: "asdfljasfdadsfjasdf",
-	}
-	req, _ := http.NewRequest("POST", "/", bytes.NewBufferString(""))
-	req.Header.Add("authorization", "Bearer test1234")
-	ctx, resp := buildTestConn(req)
-	auth(conf)(ctx)
-	if resp.Code != 401 {
-		t.Errorf("Request should have been 401 but was %d!", resp.Code)
-	}
-}
-
-func TestHarborWebhookPushArtifact(t *testing.T) {
+func TestHarborWebhookEndToEnd(t *testing.T) {
 	// Set up test HTTP request
 	payload := `{
 		"type": "PUSH_ARTIFACT",
@@ -105,11 +78,4 @@ func TestHarborWebhookPushArtifact(t *testing.T) {
 	if newImageName != "cr.b8s.dev/library/debian:v2" {
 		t.Errorf("Expected deployment to be updated but was not! Image was: %s", newImageName)
 	}
-}
-
-func buildTestConn(req *http.Request) (*gin.Context, *httptest.ResponseRecorder) {
-	w := httptest.NewRecorder()
-	conn, _ := gin.CreateTestContext(w)
-	conn.Request = req
-	return conn, w
 }

@@ -1,4 +1,4 @@
-package main
+package harbor
 
 type HarborWebhook struct {
 	EventType string             `json:"type"`
