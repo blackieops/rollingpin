@@ -70,8 +70,8 @@ roleRef:
 on Kubernetes. Just ensure you set the `serviceAccountName` in your pod spec to
 match the Service Account you created for `rollingpin`.
 
-Containers can either by built yourself, or pulled from our registry:
+Containers can either by built yourself, or pulled from GitHub Packages:
 
 ```
-cr.b8s.dev/library/rollingpin:v1.1.1
+ghcr.io/blackieops/rollingpin:v1.2.0
 ```
