@@ -73,5 +73,5 @@ match the Service Account you created for `rollingpin`.
 Containers can either by built yourself, or pulled from GitHub Packages:
 
 ```
-ghcr.io/blackieops/rollingpin:v1.2.0
+ghcr.io/blackieops/rollingpin:v1.3.0
 ```
