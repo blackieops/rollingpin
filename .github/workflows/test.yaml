@@ -21,6 +21,9 @@ jobs:
     - name: Copy test config.yaml
       run: cp config.yaml.example config.yaml
 
+    - name: Get dependencies
+      run: go get .
+
     - name: Build
       run: go build -v ./...
 
