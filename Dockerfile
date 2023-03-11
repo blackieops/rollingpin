@@ -1,4 +1,4 @@
-FROM golang:1.17.8
+FROM golang:1.20.1
 ENV CGO_ENABLED 0
 ADD . /src
 WORKDIR /src
