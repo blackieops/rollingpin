@@ -79,3 +79,57 @@ func TestHarborWebhookEndToEnd(t *testing.T) {
 		t.Errorf("Expected deployment to be updated but was not! Image was: %s", newImageName)
 	}
 }
+
+func TestDirectWebhookEndToEnd(t *testing.T) {
+	// Set up test HTTP request
+	payload := `{
+		"image_url": "cr.b8s.dev/library/debian:v2",
+		"repository_name": "library/debian"
+	}`
+	req, _ := http.NewRequest("POST", "/webhooks/direct", bytes.NewBufferString(payload))
+	req.Header.Add("authorization", "Bearer abc1234")
+	resp := httptest.NewRecorder()
+
+	// Set up fake kubernetes api client
+	fakeClient, _ := kube.NewFake()
+	fakeClient.CreateDeployment(
+		&kube.Deployment{
+			Namespace: "default",
+			Name:      "test-deployment",
+			Containers: []*kube.Container{
+				{Name: "app", Image: "cr.b8s.dev/library/debian:v1"},
+			},
+		},
+	)
+
+	// Set up our own app's stuff
+	conf := &config.Config{
+		AuthToken: "abc1234",
+		Mappings: []config.ImageMapping{
+			{
+				Namespace:      "default",
+				DeploymentName: "test-deployment",
+				ImageName:      "library/debian",
+			},
+		},
+	}
+	log, _ := zap.NewProduction()
+
+	// Execute request
+	r := buildRouter(conf, log, fakeClient)
+	r.ServeHTTP(resp, req)
+
+	// Assertions
+	if resp.Code != 200 {
+		t.Errorf("Expected 200 response got: %d", resp.Code)
+	}
+	if resp.Body.String() != `{"ok":true}` {
+		t.Errorf("Expected OK response got: %s", resp.Body.String())
+	}
+
+	newDeploy, _ := fakeClient.GetDeployment("default", "test-deployment")
+	newImageName := newDeploy.Containers[0].Image
+	if newImageName != "cr.b8s.dev/library/debian:v2" {
+		t.Errorf("Expected deployment to be updated but was not! Image was: %s", newImageName)
+	}
+}

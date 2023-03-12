@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.b8s.dev/rollingpin/config"
 	"go.b8s.dev/rollingpin/kube"
+	"go.b8s.dev/rollingpin/providers/direct"
 	"go.b8s.dev/rollingpin/providers/harbor"
 	"go.uber.org/zap"
 )
@@ -54,6 +55,9 @@ func buildRouter(conf *config.Config, logger *zap.Logger, client kube.IClient) *
 
 	harborRouter := &harbor.Router{Config: conf, Logger: logger, Client: client}
 	harborRouter.Mount(r.Group("/webhooks/harbor"))
+
+	directRouter := &direct.Router{Config: conf, Logger: logger, Client: client}
+	directRouter.Mount(r.Group("/webhooks/direct"))
 
 	return r
 }
