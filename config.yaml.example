@@ -1,5 +1,16 @@
 ---
+# `auth_token` is a shared token that is expected to be in the `Authorization`
+# header as a `Bearer` token for all webhooks.
 auth_token: "..."
+
+# providers is a list of webhook sources you want to support. Disable any you
+# don't use for greater security.
+providers:
+- harbor
+- direct
+
+# mappings defines the relationship between repository names and the Kubernetes
+# deployment to which they correspond.
 mappings:
 - image: library/someapp
   deployment: someapp

@@ -17,9 +17,10 @@ type Config struct {
 // ImageMapping correlates a container image name to a Kubernetes deployment
 // and namespace, so we know what to update for a given image.
 type ImageMapping struct {
-	ImageName      string `yaml:"image"`
-	DeploymentName string `yaml:"deployment"`
-	Namespace      string `yaml:"namespace"`
+	ImageName      string   `yaml:"image"`
+	DeploymentName string   `yaml:"deployment"`
+	Namespace      string   `yaml:"namespace"`
+	Providers      []string `yaml:"providers"`
 }
 
 func LoadConfig(configPath string) (*Config, error) {
@@ -37,4 +38,16 @@ func LoadConfig(configPath string) (*Config, error) {
 	}
 
 	return config, nil
+}
+
+// ProviderEnabled returns true if the given provider is listed in the config.
+func ProviderEnabled(config *Config, provider string) bool {
+	for _, p := range config.Mappings {
+		for _, p2 := range p.Providers {
+			if p2 == provider {
+				return true
+			}
+		}
+	}
+	return false
 }

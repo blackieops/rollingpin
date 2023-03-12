@@ -53,11 +53,15 @@ func buildRouter(conf *config.Config, logger *zap.Logger, client kube.IClient) *
 	r.SetTrustedProxies(nil)
 	r.Use(gin.Recovery(), requestLogger(logger))
 
-	harborRouter := &harbor.Router{Config: conf, Logger: logger, Client: client}
-	harborRouter.Mount(r.Group("/webhooks/harbor"))
+	if config.ProviderEnabled(conf, "harbor") {
+		harborRouter := &harbor.Router{Config: conf, Logger: logger, Client: client}
+		harborRouter.Mount(r.Group("/webhooks/harbor"))
+	}
 
-	directRouter := &direct.Router{Config: conf, Logger: logger, Client: client}
-	directRouter.Mount(r.Group("/webhooks/direct"))
+	if config.ProviderEnabled(conf, "direct") {
+		directRouter := &direct.Router{Config: conf, Logger: logger, Client: client}
+		directRouter.Mount(r.Group("/webhooks/direct"))
+	}
 
 	return r
 }
